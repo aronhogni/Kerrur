@@ -1,0 +1,117 @@
+name: Athuga reglugerdir
+
+# Keyrir sjalfkrafa a manudagsmorgnum kl. 6 (UTC) og lika handvirkt
+# (Actions-flipinn -> "Athuga reglugerdir" -> Run workflow).
+# Ef reglugerd breytist: (1) vistar breytinguna i rules-status.json og
+# (2) fellur viljandi (exit 1) svo GitHub sendi eiganda tolvupost.
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  athuga:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Saekja reglugerdir og bera saman
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, os, re, urllib.request, datetime
+
+          WATCH = [
+              ("Reglugerd 830/2011 (okuskirteini)", [
+                  "https://island.is/reglugerdir/nr/0830-2011",
+                  "https://island.is/reglugerdir/nr/830-2011",
+              ]),
+              ("Reglugerd 1240/2019 (sektir)", [
+                  "https://island.is/reglugerdir/nr/1240-2019",
+              ]),
+              ("Reglugerd 155/2007 (staerd og thyngd)", [
+                  "https://island.is/reglugerdir/nr/0155-2007",
+                  "https://island.is/reglugerdir/nr/155-2007",
+              ]),
+              ("Umferdarlog 77/2019", [
+                  "https://www.althingi.is/lagas/nuna/2019077.html",
+              ]),
+          ]
+
+          def fetch_hash(urls):
+              for u in urls:
+                  try:
+                      req = urllib.request.Request(u, headers={"User-Agent": "Mozilla/5.0 (reglu-vaktari)"})
+                      with urllib.request.urlopen(req, timeout=30) as r:
+                          raw = r.read().decode("utf-8", "ignore")
+                      raw = re.sub(r"<(script|style)[\s\S]*?</\1>", " ", raw, flags=re.I)
+                      text = re.sub(r"<[^>]+>", " ", raw)
+                      text = re.sub(r"\s+", " ", text).strip()
+                      if len(text) > 500:
+                          return u, hashlib.sha256(text.encode()).hexdigest()
+                  except Exception as e:
+                      print("Villa vid ad saekja", u, "->", e)
+              return None, None
+
+          old = {}
+          if os.path.exists("rules-status.json"):
+              try:
+                  old = json.load(open("rules-status.json", encoding="utf-8"))
+              except Exception:
+                  old = {}
+          old_hashes = old.get("hashes", {})
+          alert = set(old.get("alert", []))
+          changed_now = []
+
+          hashes = {}
+          for name, urls in WATCH:
+              url, h = fetch_hash(urls)
+              if h is None:
+                  if name in old_hashes:
+                      hashes[name] = old_hashes[name]
+                  continue
+              hashes[name] = h
+              if name in old_hashes and old_hashes[name] != h:
+                  alert.add(name); changed_now.append(name)
+                  print("BREYTING fannst:", name, "(", url, ")")
+              elif name in old_hashes:
+                  print("Obreytt:", name)
+              else:
+                  print("Grunnlina skrad:", name)
+
+          new = {
+              "hashes": hashes,
+              "alert": sorted(alert),
+              "checked": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
+          }
+          json.dump(new, open("rules-status.json", "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+          print("rules-status.json uppfaert.")
+
+          # Skrifa flagg svo naesta skref viti hvort NY breyting fannst i thessari keyrslu
+          if changed_now:
+              open("CHANGED", "w").write("\n".join(changed_now))
+          PY
+
+      - name: Vista nidurstodu i repo-id
+        run: |
+          if [ -n "$(git status --porcelain rules-status.json)" ]; then
+            git config user.name "reglu-vaktari"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add rules-status.json
+            git commit -m "Sjalfvirk athugun a reglugerdum"
+            git push
+          else
+            echo "Ekkert ad vista."
+          fi
+
+      - name: Lata vita ef reglugerd breyttist (sendir tolvupost fra GitHub)
+        run: |
+          if [ -f CHANGED ]; then
+            echo "::error::Reglugerd breyttist - yfirfara tharf reiknivelina:"
+            cat CHANGED
+            exit 1
+          else
+            echo "Engin ny breyting."
+          fi
