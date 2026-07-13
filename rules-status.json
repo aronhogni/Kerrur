@@ -1,10 +1,13 @@
 {
   "hashes": {
-    "Reglugerd 830/2011 (okuskirteini)": "d7d7831d0ad47fa8775ed7b1d401c2d98e2d35333acb72c14cda70d1808d4859",
-    "Reglugerd 1240/2019 (sektir)": "eca68ba601fe62e50484bf1032d3b8d9439ab8474a71f701fa37c5b0b0dcda95",
+    "Reglugerd 830/2011 (okuskirteini)": "27dd8f33372b77249b18850851a66c4ed23808ecc135e470fe300ba32eb8ee29",
+    "Reglugerd 1240/2019 (sektir)": "afd82e9f09b3aee7e69f638befa35bdf4b832d48d9a8910ee581f58e6a190cc5",
     "Reglugerd 155/2007 (staerd og thyngd)": "9a194d7b0ce9e6369254924823b61d0492181b827f77c5a52ad6a5364174ab22",
     "Umferdarlog 77/2019": "54e3575fac69aad562399963e71795fb9b847aba8b5238c6ee51abfa48ae132f"
   },
-  "alert": [],
-  "checked": "2026-07-08 12:58 UTC"
+  "alert": [
+    "Reglugerd 1240/2019 (sektir)",
+    "Reglugerd 830/2011 (okuskirteini)"
+  ],
+  "checked": "2026-07-13 09:36 UTC"
 }
