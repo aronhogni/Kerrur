@@ -1,12 +1,11 @@
 name: Athuga reglugerdir
 
-# Keyrir sjalfkrafa a manudagsmorgnum kl. 6 (UTC) og lika handvirkt
-# (Actions-flipinn -> "Athuga reglugerdir" -> Run workflow).
-# Ef reglugerd breytist: (1) vistar breytinguna i rules-status.json og
-# (2) fellur viljandi (exit 1) svo GitHub sendi eiganda tolvupost.
+# Keyrir adeins handvirkt (Actions-flipinn -> "Athuga reglugerdir" -> Run
+# workflow). Vikulega keyrslan var tekin af: sidurnar a island.is breytast
+# vid hverja sokn, svo "breyting" kviknadi i hverri viku og sendi tolvupost
+# ad oTHorfu. Ef reglugerd breytist er thad skrad i rules-status.json
+# (listinn "alert") - keyrslan fellur ekki lengur viljandi.
 on:
-  schedule:
-    - cron: "0 6 * * 1"
   workflow_dispatch:
 
 permissions:
@@ -106,12 +105,11 @@ jobs:
             echo "Ekkert ad vista."
           fi
 
-      - name: Lata vita ef reglugerd breyttist (sendir tolvupost fra GitHub)
+      - name: Lata vita ef reglugerd breyttist
         run: |
           if [ -f CHANGED ]; then
-            echo "::error::Reglugerd breyttist - yfirfara tharf reiknivelina:"
+            echo "::warning::Reglugerd breyttist - yfirfara tharf reiknivelina:"
             cat CHANGED
-            exit 1
           else
             echo "Engin ny breyting."
           fi
